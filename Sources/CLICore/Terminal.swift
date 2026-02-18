@@ -4,6 +4,15 @@ import Foundation
 /// Computed once at startup; all styling functions check this automatically.
 public let isTerminal: Bool = isatty(STDOUT_FILENO) != 0
 
+/// Detect terminal width via ioctl. Falls back to 120 columns.
+public func terminalWidth() -> Int {
+    var w = winsize()
+    if ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0, w.ws_col > 0 {
+        return Int(w.ws_col)
+    }
+    return 120
+}
+
 /// RGB color value for true-color ANSI escape sequences.
 public struct RGB: Sendable {
     public let r: UInt8
@@ -34,6 +43,8 @@ public enum Color: Sendable {
     case reset, bold, dim
     case red, green, yellow, blue, cyan, white, gray, orange
     case magenta, lightGray, darkGray
+    case darkBlue, darkRed, darkNeonGreen
+    case custom(String)
 
     public var rawValue: String {
         switch self {
@@ -46,11 +57,15 @@ public enum Color: Sendable {
         case .blue:      return RGB(hex: "61AFEF").fg
         case .cyan:      return RGB(hex: "56B6C2").fg
         case .white:     return RGB(hex: "ABB2BF").fg
-        case .gray:      return RGB(hex: "5C6370").fg
+        case .gray:      return RGB(hex: "6B7280").fg
         case .orange:    return RGB(hex: "D19A66").fg
         case .magenta:   return RGB(hex: "C678DD").fg
         case .lightGray: return RGB(hex: "848B98").fg
-        case .darkGray:  return RGB(hex: "3E4451").fg
+        case .darkGray:  return RGB(hex: "333842").fg
+        case .darkBlue:  return RGB(hex: "4A9EC2").fg
+        case .darkRed:       return RGB(hex: "C85A6A").fg
+        case .darkNeonGreen: return RGB(hex: "1EA00C").fg
+        case .custom(let code): return code
         }
     }
 }
@@ -82,5 +97,42 @@ extension String {
         let visible = self.strippingANSI.count
         if visible >= width { return self }
         return self + String(repeating: " ", count: width - visible)
+    }
+
+    /// Truncate to a visible width, preserving ANSI escape sequences.
+    /// Appends an ellipsis if truncation occurs and resets ANSI state.
+    public func truncatedANSI(to width: Int) -> String {
+        guard width > 0 else { return "" }
+        let target = width - 1  // reserve space for ellipsis
+
+        var result = ""
+        var visible = 0
+        var i = self.startIndex
+
+        while i < self.endIndex && visible < target {
+            if self[i] == "\u{001B}" {
+                // consume the entire escape sequence
+                var j = self.index(after: i)
+                if j < self.endIndex && self[j] == "[" {
+                    j = self.index(after: j)
+                    while j < self.endIndex && self[j] != "m" {
+                        j = self.index(after: j)
+                    }
+                    if j < self.endIndex {
+                        j = self.index(after: j)  // past 'm'
+                    }
+                }
+                result += self[i..<j]
+                i = j
+            } else {
+                result.append(self[i])
+                visible += 1
+                i = self.index(after: i)
+            }
+        }
+
+        result += "\u{2026}"
+        if isTerminal { result += Color.reset.rawValue }
+        return result
     }
 }
