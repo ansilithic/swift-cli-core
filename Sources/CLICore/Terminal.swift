@@ -1,10 +1,9 @@
 import Foundation
 
 /// Whether stdout is connected to an interactive terminal.
-/// Computed once at startup; all styling functions check this automatically.
-/// Set `FORCE_COLOR=1` to enable ANSI output even when piped (e.g. for screenshots).
-public let isTerminal: Bool = isatty(STDOUT_FILENO) != 0
-    || ProcessInfo.processInfo.environment["FORCE_COLOR"] != nil
+/// Color output is always enabled — if a consumer needs plain text,
+/// pipe through a tool that strips ANSI (e.g. `| sed 's/\x1b\[[0-9;]*m//g'`).
+public let isTerminal: Bool = true
 
 /// Detect terminal width via ioctl. Falls back to 120 columns.
 public func terminalWidth() -> Int {
