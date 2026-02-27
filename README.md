@@ -1,10 +1,10 @@
-# swift-cli-core — Swift library for building CLI tools on macOS
+# swift-cli-core
 
 Terminal styling, ANSI color output, table formatting, and structured messaging for Swift command-line tools. Used across [Ansilithic](https://github.com/ansilithic) tools.
 
 ## Usage
 
-Add to your `Package.swift`:
+Add to the `Package.swift`:
 
 ```swift
 dependencies: [
@@ -12,7 +12,7 @@ dependencies: [
 ]
 ```
 
-Then import in your target:
+Then import in the target:
 
 ```swift
 .executableTarget(name: "mytool", dependencies: [
