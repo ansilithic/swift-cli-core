@@ -14,6 +14,15 @@ public func terminalWidth() -> Int {
     return 120
 }
 
+/// Detect terminal height via ioctl. Falls back to 40 rows.
+public func terminalHeight() -> Int {
+    var w = winsize()
+    if ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0, w.ws_row > 0 {
+        return Int(w.ws_row)
+    }
+    return 40
+}
+
 /// RGB color value for true-color ANSI escape sequences.
 public struct RGB: Sendable {
     public let r: UInt8
